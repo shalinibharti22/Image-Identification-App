@@ -1,25 +1,152 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect, useRef } from 'react';
+import * as mobilenet from "@tensorflow-models/mobilenet";
+import '@tensorflow/tfjs-backend-cpu'; 
+import * as tf from '@tensorflow/tfjs';
+
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const [isModelLoading, setIsModelLoading] = useState(false)
+    const [model, setModel] = useState(null)
+    const [imageURL, setImageURL] = useState(null);
+    const [results, setResults] = useState([])
+    const [history, setHistory] = useState([])
+
+
+    const imageRef = useRef()
+    const textInputRef = useRef()
+    const fileInputRef = useRef()
+
+
+    const loadModel = async () => {
+        setIsModelLoading(true)
+        try {
+            await tf.ready();
+            const model = await mobilenet.load()
+            setModel(model)
+            setIsModelLoading(false)
+        } catch (error) {
+            console.log(error)
+            setIsModelLoading(false)
+        }
+    }
+
+
+    const uploadImage = (e) => {
+        const { files } = e.target
+        if (files.length > 0) {
+            const url = URL.createObjectURL(files[0])
+            setImageURL(url)
+        } else {
+            setImageURL(null)
+        }
+    }
+
+
+    const identify = async () => {
+      // Check if model is available
+      if (!model) {
+          console.log('Model is not loaded yet');
+          return; // Prevent trying to classify if the model is not loaded
+      }
+
+      if (!imageRef.current) {
+        console.log('Image not found');
+        return; // Prevent calling classify if imageRef is null
+    }
+      textInputRef.current.value = '';
+      try {
+          // If model is loaded, proceed with classification
+          const results = await model.classify(imageRef.current);
+          setResults(results);
+      } catch (error) {
+          console.error('Error during classification:', error);
+      }
+  };
+  
+
+
+    const handleOnChange = (e) => {
+        setImageURL(e.target.value)
+        setResults([])
+    }
+
+
+    const triggerUpload = () => {
+        fileInputRef.current.click()
+    }
+
+
+    useEffect(() => {
+        loadModel()
+    }, [])
+
+
+    useEffect(() => {
+        if (imageURL) {
+            setHistory((prevHistory)=>[imageURL, ...prevHistory])
+        }
+    }, [imageURL])
+
+
+    if (isModelLoading) {
+        return <h2>Model Loading...</h2>
+    }
+
+
+    return (
+        <div className="App">
+            <h1 className='header'>Image Identification</h1>
+            <div className='inputHolder'>
+                <input
+                  type='file' 
+                  accept='image/*' 
+                  capture='camera' 
+                  className='uploadInput'
+                  onChange={uploadImage} 
+                  ref={fileInputRef} 
+                  />
+                <button className='uploadImage' onClick={triggerUpload}>
+                  Upload Image
+                  </button>
+                <span className='or'>OR</span>
+                <input type="text" placeholder='Paste image URL' ref={textInputRef} onChange={handleOnChange} />
+            </div>
+            <div className="mainWrapper">
+                <div className="mainContent">
+                    <div className="imageHolder">
+                        {imageURL && <img src={imageURL} alt="Upload Preview" crossOrigin="anonymous" ref={imageRef} />}
+                    </div>
+                    {results.length > 0 && <div className='resultsHolder'>
+                        {results.map((result, index) => {
+                            return (
+                                <div className='result' key={result.className}>
+                                    <span className='name'>{result.className}</span>
+                                    <span className='confidence'>Confidence level: {(result.probability * 100).toFixed(2)}% {index === 0 && <span className='bestGuess'>Best Guess</span>}</span>
+                                </div>
+                            )
+                        })}
+                    </div>}
+                </div>
+                {imageURL && <button className='button' onClick={identify}>Identify Image</button>}
+            </div>
+            {history.length > 0 && <div className="recentPredictions">
+                <h2>Recent Images</h2>
+                <div className="recentImages">
+                    {history.map((image, index) => {
+                        return (
+                            <div className="recentPrediction" key={`${image}${index}`}>
+                                <img src={image} alt='Recent Prediction' onClick={() => setImageURL(image)} />
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>}
+        </div>
+    );
 }
 
+
 export default App;
+
+
+
