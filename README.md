@@ -27,4 +27,7 @@ To get a local copy up and running, follow these steps:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/image-identification-app.git
+   git clone https://github.com/shalinibharti22/Image-Identification-App.git
+
+
+The Link for  Website : https://imageidentificatio-app.netlify.app/
