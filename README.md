@@ -31,3 +31,4 @@ To get a local copy up and running, follow these steps:
 
 
 The Link for  Website : https://imageidentificatio-app.netlify.app/
+Updated with new features :https://image-identification-app-4ttp.vercel.app/
